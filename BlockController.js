@@ -31,7 +31,7 @@ class BlockController{
    
    var bodyText = req.body.body;
   
-   if(bodyText!= undefined){
+  if(bodyText!= undefined && bodyText.length > 0){
 
       this.blockChain.addBlock(Blockchain.createBlock(bodyText)).then((block)=>{
         res.status(200).send(block);

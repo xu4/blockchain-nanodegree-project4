@@ -1,5 +1,5 @@
 # Dependencies
-Node.js Framework 8.11.+
+This project uses Express, a Node.js Framework. 
 
 ```
 "dependencies": {
