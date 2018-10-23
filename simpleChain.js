@@ -21,6 +21,7 @@ class Block{
     }
 }
 
+
 /* ===== Blockchain Class ==========================
 |  Class with a constructor for new blockchain    |
 |  ================================================*/
@@ -45,10 +46,12 @@ constructor(){
                       
                     }).catch((err) => {
                         console.log('Unable to add Genesis block!', err);
+                        throw err;
                 });
             }
         }).catch((err) => {
             console.log('Unable to get Block Height!', err);
+            throw err;
         });
     }
 
@@ -87,7 +90,14 @@ constructor(){
   getBlock(blockHeight){
     return new Promise((resolve, reject)=>{
      db.getLevelDBData(blockHeight).then((value)=>{
-        resolve(JSON.parse(value));
+
+      var block = JSON.parse(value);
+      
+      if(typeof(block.body) !=='undefined' && typeof(block.body.star) !=='undefined'){
+        block.body.star.story = new Buffer(block.body.star.story, 'hex').toString();
+      }
+
+        resolve(block);
       }).catch((error)=>{
         reject(error);
       });
@@ -173,7 +183,6 @@ constructor(){
           resolve(errorList);
           
       }).catch((error)=>{
-            console.log("Error getting block height.");
             reject(error);
       });
 
@@ -184,6 +193,50 @@ constructor(){
   static createBlock(description) {
         return new Block(description)
   }
+
+
+  findStarsByQuery(searchType, searchValue){
+ 
+  return new Promise((resolve, reject)=>{
+    
+    this.getBlockHeight().then(async (height)=>{
+           
+          let blockList = [];
+           for (var i = 0; i <= height; i++) {
+              await this.getBlock(i).then((block)=>{
+              //console.log('block: '+ JSON.parse(block));
+              if(searchType !=null && searchType =="Address"){
+        
+                  if(block.body.address == searchValue){
+                   blockList.push(block);
+                  }
+
+              }else if (searchType !=null && searchType =="Hash"){
+
+                if(block.hash == searchValue){
+                    
+                    blockList.push(block);
+                }
+              }else{
+                reject(new Error("Invalid search type."));
+              }
+
+             
+              
+            }).catch((error)=>{
+              reject(error);
+            });
+          }
+          resolve(blockList);
+      
+      }).catch((error)=>{
+            reject(error);
+      });
+
+    });
+  }
+
+
 
 }//end of class
   

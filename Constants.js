@@ -1,0 +1,13 @@
+
+
+module.exports = Object.freeze({   
+  VALIDATION_WINDOW_MINUTES : 5,
+  HASH_LENGTH : 64,
+  SIGNATURE_LENGTH : 88,
+  ADDRESS_LENGTH : 34,
+  MAX_STORY_BYTES : 500,
+  MAX_STORY_WORDS : 250
+});
+
+
+
