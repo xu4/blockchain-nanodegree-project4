@@ -3,6 +3,8 @@ This project uses Express, a Node.js Framework.
 
 ```
 "dependencies": {
+    "bitcoinjs-lib": "^4.0.2",
+    "bitcoinjs-message": "^2.0.0",
     "body-parser": "^1.18.3",
     "crypto-js": "^3.1.9-1",
     "express": "^4.16.3",
@@ -19,60 +21,254 @@ This project uses Express, a Node.js Framework.
 # REST API
 Content-Type header for all requests is application/json.
 
-### GET Block Endpoint: 
-1. GET /block/:blockID
-2. Path parameter: blockID is a number representing block height.
+### Blockchain ID validation request 
+1. POST http://localhost:8000/requestValidation
+2. Request Body parameter: 
+```
+  address: String (34 chars). Required.
+  This is wallet address, that Client wants to use to register the Star.
+```
+
 3. Request example:
 ```
-curl -X GET http://localhost:8000/block/0
+curl -X "POST" "http://localhost:8000/requestValidation" \
+     -H 'Content-Type: application/json; charset=utf-8' \
+     -d $'{
+  "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ"
+}'
 ```
-4. Response: a block object in JSON format.
+
+4. Successful Response: a block object in JSON format.
 ```
 {
-"hash":"49cce61ec3e6ae664514d5fa5722d86069cf981318fc303750ce66032d0acff3",
-"height":0,
-"body":"First block in the chain - Genesis block",
-"time":"1530311457",
-"previousBlockHash":""
+  "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+  "requestTimeStamp": "1532296090",
+  "message": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ:1532296090:starRegistry",
+  "validationWindow": 300
 }
 ```
-5. Errors:
-	When block height parameter from the request, is more than current Blockchain length or is not a number, then Bad Request error is returned.
-
-	Status code is 400
-
-	Response body has error: String property.
+5. Errors example:
+When address is invalid,  Bad Request error is returned.
 ```
-{"error": "Invalid block height."}
+{"error": "Invalid address."}
 ```
 
 
-### POST Block Endpoint: 
-1. POST /block
-2. Request example:
+### Blockchain ID message signature validation
+1. POST  http://localhost:8000/message-signature/validate
+
+2. Request Body parameter: 
 ```
-curl -X POST \
-  http://localhost:8000/block \
-  -H 'Cache-Control: no-cache' \
-  -H 'Content-Type: application/json' \
-  -d '{"body": "Testing block with test string data"}'
+  address: String (34 chars). Required.
+  This is wallet address, that Client wants to use to register the Star.
+
+  signature: String with  88 chars length. Required.
+  This is signature of the message received in response to POST /requestValidation. Client must produce this signature for the message using his Bitcoin Wallet address.
 ```
-3. Response: a block object in JSON format.
+3. Request example:
+```
+curl -X "POST" "http://localhost:8000/message-signature/validate" \
+     -H 'Content-Type: application/json; charset=utf-8' \
+     -d $'{
+  "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+  "signature": "H6ZrGrF0Y4rMGBMRT2+hHWGbThTIyhBS0dNKQRov9Yg6GgXcHxtO9GJN4nwD2yNXpnXHTWU9i+qdw5vpsooryLU="
+}'
+```
+
+4. Successful Response: a block object in JSON format.
 ```
 {
-    "hash": "c20c4afbc53b8f4ea150163f30de2f6f476099cd20be6a1264c5b6e6ab41fa3a",
-    "height": 5,
-    "body": "Testing block with test string data",
-    "time": "1538685493",
-    "previousBlockHash": "058b1cd78d5d1f496da7150775ef07cb3c772bec08350aecfa12cd88496b227a"
+  "registerStar": true,
+  "status": {
+    "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+    "requestTimeStamp": "1532296090",
+    "message": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ:1532296090:starRegistry",
+    "validationWindow": 193,
+    "messageSignature": "valid"
+  }
 }
 ```
-4. Errors:
-	For post without any content on the payload, Bad Request error is returned.
 
-	Status code is 400
+4. Errors example:
+Status code is 400
+```
+{"error": "Empty/Invalid Address or Signature"}
+```
 
-	Response body has error: String property.
+### Star registration Endpoint
+1. POST http://localhost:8000/block
+
+2. Request Body parameter: 
 ```
-{"error": "Invalid block body. Block is not created."}
+  address: String (34 chars). Required.
+  This is wallet address, that Client wants to use to register the Star.
+
+  Star: Object. Required.
+  star is Object with three required properties: ra, dec and story.
+
+  ra: string describing Right Ascend of the Star. Required.
+  dec: String describing Declination of the Star. Required.
+  story: String describing any arbitrary information about the Star, max 500 bytes or 250 words length. Required.
 ```
+
+3. Request example:
+```
+curl -X "POST" "http://localhost:8000/block" \
+     -H 'Content-Type: application/json; charset=utf-8' \
+     -d $'{
+  "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+  "star": {
+    "dec": "-26° 29'\'' 24.9",
+    "ra": "16h 29m 1.0s",
+    "story": "Found star using https://www.google.com/sky/"
+  }
+}'
+```
+
+4. Successful Response: a block object in JSON format.
+```
+{
+  "hash": "a59e9e399bc17c2db32a7a87379a8012f2c8e08dd661d7c0a6a4845d4f3ffb9f",
+  "height": 1,
+  "body": {
+    "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+    "star": {
+      "ra": "16h 29m 1.0s",
+      "dec": "-26° 29' 24.9",
+      "story": "466f756e642073746172207573696e672068747470733a2f2f7777772e676f6f676c652e636f6d2f736b792f"
+    }
+  },
+  "time": "1532296234",
+  "previousBlockHash": "49cce61ec3e6ae664514d5fa5722d86069cf981318fc303750ce66032d0acff3"
+}
+```
+5. Errors example:
+```
+{"error": "Your request was expired."}
+```
+
+### Star Lookup By Hash Endpoint
+1. Get http://localhost:8000/stars/hash:[HASH]
+
+2. Request Body parameter: 
+```
+  hash: the hash of the block to be read (64 chars). Required.
+```
+
+3. Request example:
+```
+curl "http://localhost:8000/stars/hash:a59e9e399bc17c2db32a7a87379a8012f2c8e08dd661d7c0a6a4845d4f3ffb9f"
+```
+
+4. Successful Response: a block object in JSON format.
+```
+{
+  "hash": "a59e9e399bc17c2db32a7a87379a8012f2c8e08dd661d7c0a6a4845d4f3ffb9f",
+  "height": 1,
+  "body": {
+    "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+    "star": {
+      "ra": "16h 29m 1.0s",
+      "dec": "-26° 29' 24.9",
+      "story": "466f756e642073746172207573696e672068747470733a2f2f7777772e676f6f676c652e636f6d2f736b792f",
+      "storyDecoded": "Found star using https://www.google.com/sky/"
+    }
+  },
+  "time": "1532296234",
+  "previousBlockHash": "49cce61ec3e6ae664514d5fa5722d86069cf981318fc303750ce66032d0acff3"
+}
+```
+5. Errors example:
+```
+{"error": "Invalid Hash value."}
+```
+
+### Star Lookup By Wallet Address Endpoint
+1. Get http://localhost:8000/stars/address:[ADDRESS]
+
+2. Request Body parameter: 
+```
+  address: String (34 chars). Required.
+```
+
+3. Request example:
+```
+curl "http://localhost:8000/stars/address:142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ"
+```
+
+4. Successful Response: multiple block objects in JSON format.
+```
+[
+  {
+    "hash": "a59e9e399bc17c2db32a7a87379a8012f2c8e08dd661d7c0a6a4845d4f3ffb9f",
+    "height": 1,
+    "body": {
+      "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+      "star": {
+        "ra": "16h 29m 1.0s",
+        "dec": "-26° 29' 24.9",
+        "story": "466f756e642073746172207573696e672068747470733a2f2f7777772e676f6f676c652e636f6d2f736b792f",
+        "storyDecoded": "Found star using https://www.google.com/sky/"
+      }
+    },
+    "time": "1532296234",
+    "previousBlockHash": "49cce61ec3e6ae664514d5fa5722d86069cf981318fc303750ce66032d0acff3"
+  },
+  {
+    "hash": "6ef99fc533b9725bf194c18bdf79065d64a971fa41b25f098ff4dff29ee531d0",
+    "height": 2,
+    "body": {
+      "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+      "star": {
+        "ra": "17h 22m 13.1s",
+        "dec": "-27° 14' 8.2",
+        "story": "466f756e642073746172207573696e672068747470733a2f2f7777772e676f6f676c652e636f6d2f736b792f",
+        "storyDecoded": "Found star using https://www.google.com/sky/"
+      }
+    },
+    "time": "1532330848",
+    "previousBlockHash": "a59e9e399bc17c2db32a7a87379a8012f2c8e08dd661d7c0a6a4845d4f3ffb9f"
+  }
+]
+```
+5. Errors example:
+```
+{"error": "Invalid Address."}
+```
+
+### Star Lookup By Height Endpoint
+1. Get http://localhost:8000/block/[HEIGHT]
+
+2. Request Body parameter: 
+```
+  height: block height. Required.
+```
+
+3. Request example:
+```
+curl "http://localhost:8000/block/1"
+```
+
+4. Successful Response: a block object in JSON format.
+```
+{
+  "hash": "a59e9e399bc17c2db32a7a87379a8012f2c8e08dd661d7c0a6a4845d4f3ffb9f",
+  "height": 1,
+  "body": {
+    "address": "142BDCeSGbXjWKaAnYXbMpZ6sbrSAo3DpZ",
+    "star": {
+      "ra": "16h 29m 1.0s",
+      "dec": "-26° 29' 24.9",
+      "story": "466f756e642073746172207573696e672068747470733a2f2f7777772e676f6f676c652e636f6d2f736b792f",
+      "storyDecoded": "Found star using https://www.google.com/sky/"
+    }
+  },
+  "time": "1532296234",
+  "previousBlockHash": "49cce61ec3e6ae664514d5fa5722d86069cf981318fc303750ce66032d0acff3"
+}
+```
+5. Errors example:
+```
+{"error": "No star is found."}
+```
+# blockchain-nanodegree-project4
