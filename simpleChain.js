@@ -94,7 +94,7 @@ constructor(){
       var block = JSON.parse(value);
       
       if(typeof(block.body) !=='undefined' && typeof(block.body.star) !=='undefined'){
-        block.body.star.story = new Buffer(block.body.star.story, 'hex').toString();
+        block.body.star.storyDecoded = new Buffer(block.body.star.story, 'hex').toString();
       }
 
         resolve(block);

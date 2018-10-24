@@ -22,6 +22,7 @@ class RegistrationController{
   }
 
   errorHandle(req, res, errMsg) {
+    res.setHeader('Content-Type', 'application/json');
     res.status(400).send('{"error": "'+errMsg+'"}');
   }
 
@@ -33,6 +34,7 @@ class RegistrationController{
       
     let registrationRequest = memPool.processNewRequest(address);
 
+    res.setHeader('Content-Type', 'application/json');
     res.status(200).send(new RequestValidationResponse(registrationRequest));
     
    }else{
@@ -75,10 +77,11 @@ validateMessageSignature(req, res) {
         isValid = false;
       }
 
- 
+  
     registrationRequest.messageSignature = isValid ? 'valid' : 'invalid';
     registrationRequest.registerStar = !isExpired && isValid;
 
+    res.setHeader('Content-Type', 'application/json');
     res.status(200).send(new SignatureValidationResponse(registrationRequest));
  
     }else{
@@ -130,7 +133,9 @@ registerStar(req, res){
       body.star.story  = new Buffer(star.story).toString('hex');;
   
       blockChain.addBlock(Blockchain.createBlock(body)).then((block)=>{
-        block.body.star.story = new Buffer(block.body.star.story, 'hex').toString();
+        //the user is granted access to register a single star, not multip stars. Remove the request after one star is registered
+        memPool.removeRequest(registrationRequest);
+        res.setHeader('Content-Type', 'application/json');
         res.status(200).send(block);
         
       }).catch((error)=>{
@@ -154,6 +159,7 @@ findStarByAddress(req, res) {
    if(address != undefined && address.length == constants.ADDRESS_LENGTH){
     blockChain.findStarsByQuery("Address", address).then((blocks)=>{
 
+      res.setHeader('Content-Type', 'application/json');
       if(blocks.length==0){
           res.status(200).send("{'message', 'No star is found.'}");
       }else{
@@ -179,6 +185,7 @@ findStarByHash(req, res) {
       
     blockChain.findStarsByQuery("Hash", hash).then((blocks)=>{
 
+      res.setHeader('Content-Type', 'application/json');
       if(blocks.length==0){
           res.status(200).send("{'message', 'No star is found.'}");
       }else if(blocks.length==1){
@@ -206,6 +213,8 @@ findStarByBlockHeight(req, res) {
    }else{
 
     blockChain.getBlock(blockHeight).then((block)=>{
+
+      res.setHeader('Content-Type', 'application/json');
 
       if(block == null){
           res.status(200).send('{"message", "No star is found."}');
